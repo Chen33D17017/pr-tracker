@@ -1,27 +1,47 @@
 # PR Tracker
 
-A Tauri-based desktop application for tracking and managing GitHub Pull Request reviews.
+A fully functional desktop application for tracking and managing GitHub Pull Request reviews.
 
-Built with Tauri, React, TypeScript, and Tailwind CSS.
+**Built with:** Tauri + React + TypeScript + Tailwind CSS + SQLite
 
-## 📚 Documentation
+## ✨ Features
 
-Comprehensive documentation is available in the [`/doc/`](doc/) folder:
-
-- **[📖 Documentation Index](doc/README.md)** - Complete overview of all documentation
-- **[🔧 Integration Guides](doc/integration/)** - Frontend/backend integration
-- **[🎯 User Guides](doc/guides/)** - Step-by-step feature guides
-- **[🌐 GitHub API](doc/github/)** - GitHub integration documentation
-- **[🗃️ Database](doc/database/)** - Database schemas and models
-- **[⚡ API Reference](doc/api/)** - Internal API documentation
-- **[💡 Examples](doc/examples/)** - Code examples and samples
+- 🔗 **Add PRs from GitHub URLs** - Real GitHub API integration
+- 📁 **Project Organization** - Categorize PRs by project
+- ✅ **Review Status Tracking** - Waiting → Reviewing → Action → Approved → Archived
+- 📋 **Copy to Clipboard** - Branch details and GitHub URLs
+- 🔒 **Secure Token Storage** - macOS Keychain integration
+- 📊 **Performance Tracking** - Team member rankings
 
 ## 🚀 Quick Start
 
-1. **Project Overview**: See [`CLAUDE.md`](CLAUDE.md) for complete project documentation
-2. **Setup GitHub Integration**: Follow [`doc/integration/app-integration-steps.md`](doc/integration/app-integration-steps.md)
-3. **Manage Projects**: Use [`doc/guides/project-crud-frontend-usage.md`](doc/guides/project-crud-frontend-usage.md)
+```bash
+# Install dependencies
+npm install
 
-## Recommended IDE Setup
+# Development
+npm run tauri dev
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+# Build for production
+npm run tauri build
+```
+
+## ⚙️ Setup
+
+1. **GitHub Token**: Generate a Personal Access Token with repo permissions
+2. **Settings**: Open app settings (⚙️) and add your token
+3. **Add PRs**: Paste GitHub PR URLs to start tracking
+
+## 📖 Documentation
+
+📄 **[CLAUDE.md](CLAUDE.md)** - Complete project documentation, features, and implementation details
+
+## 🛠️ Development
+
+**Requirements:** Node.js 18+, Rust, Tauri CLI
+
+**IDE Setup:** VS Code + [Tauri Extension](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+
+---
+
+*Ready for daily use in managing GitHub pull request reviews*
