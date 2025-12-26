@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(cargo:*)",
-      "Bash(npm run tauri icon --help:*)"
+      "Bash(npm run tauri icon --help:*)",
+      "Skill(ui-ux-pro-max)",
+      "Bash(python3:*)"
     ]
   }
 }

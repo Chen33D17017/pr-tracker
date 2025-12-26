@@ -9,7 +9,7 @@ import {
   MoreHorizontal,
   ChevronRight,
   X,
-  Github,
+  GitBranch,
   LayoutDashboard,
   Inbox,
   Settings,
@@ -29,7 +29,10 @@ import {
   Zap,
   Wifi,
   WifiOff,
-  Copy
+  Copy,
+  Moon,
+  Sun,
+  Palette
 } from 'lucide-react';
 
 // TypeScript interfaces for database structures
@@ -68,7 +71,11 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('Overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [repoFilter, setRepoFilter] = useState<string | null>(null); 
+  const [repoFilter, setRepoFilter] = useState<string | null>(null);
+
+  // Theme state - dark mode support
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isLoadingPRs, setIsLoadingPRs] = useState(false); 
   
   // 視窗與測試狀態
   const [showSettings, setShowSettings] = useState(false);
@@ -241,12 +248,15 @@ const App = () => {
 
   const loadPRs = async () => {
     try {
+      setIsLoadingPRs(true);
       const prList = await invoke('get_pull_requests') as PullRequest[];
       setPrs(prList);
     } catch (error) {
       console.error('Failed to load PRs from database:', error);
       // Fallback to empty array if database PRs fail to load
       setPrs([]);
+    } finally {
+      setIsLoadingPRs(false);
     }
   };
 
@@ -557,15 +567,41 @@ const App = () => {
     }
   };
 
+  // Dark mode toggle function
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  // Dynamic theme classes
+  const themeClasses = {
+    bg: isDarkMode ? 'bg-slate-900' : 'bg-slate-50',
+    cardBg: isDarkMode ? 'bg-slate-800' : 'bg-white',
+    sidebarBg: isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200',
+    text: isDarkMode ? 'text-slate-100' : 'text-slate-900',
+    textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
+    textLight: isDarkMode ? 'text-slate-300' : 'text-slate-600',
+    border: isDarkMode ? 'border-slate-700' : 'border-slate-200',
+    headerBg: isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+  };
+
   return (
-    <div className="flex h-screen bg-[#F9FAFB] font-sans text-slate-900 antialiased overflow-hidden">
+    <div className={`flex h-screen ${themeClasses.bg} font-body ${themeClasses.text} antialiased overflow-hidden transition-colors duration-300`}>
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
-        <div className="p-6 flex items-center gap-3">
-          <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-sm">
-            <GitPullRequest size={20} />
+      <aside className={`w-64 ${themeClasses.sidebarBg} border-r flex flex-col hidden md:flex transition-colors duration-300`}>
+        <div className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-xl text-white shadow-lg">
+              <GitPullRequest size={22} />
+            </div>
+            <span className={`font-heading font-bold text-xl tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent`}>PR Manager</span>
           </div>
-          <span className="font-bold text-lg tracking-tight">PR Manager</span>
+          <button
+            onClick={toggleDarkMode}
+            className={`p-2 rounded-lg transition-all duration-200 ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600 text-yellow-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
         </div>
         
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
@@ -576,6 +612,7 @@ const App = () => {
             onClick={() => { setActiveTab('Overview'); setStatusFilter(null); setRepoFilter(null); }}
             badge=""
             small={false}
+            isDarkMode={isDarkMode}
           />
           <NavItem
             icon={<Inbox size={18}/>}
@@ -584,6 +621,7 @@ const App = () => {
             active={statusFilter === 'Waiting'}
             onClick={() => { setActiveTab('Overview'); setStatusFilter('Waiting'); setRepoFilter(null); }}
             small={false}
+            isDarkMode={isDarkMode}
           />
           <NavItem
             icon={<BarChart3 size={18}/>}
@@ -592,6 +630,7 @@ const App = () => {
             onClick={() => { setActiveTab('Performance'); setStatusFilter(null); setRepoFilter(null); }}
             badge=""
             small={false}
+            isDarkMode={isDarkMode}
           />
           
           <div className="py-4 px-2">
@@ -619,6 +658,7 @@ const App = () => {
                           small={true}
                           icon={<ChevronRight size={14}/>}
                           badge=""
+                          isDarkMode={isDarkMode}
                         />
                         {!hasPRs && (
                           <button
@@ -655,7 +695,7 @@ const App = () => {
           </div>
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
+        <div className={`p-4 border-t ${themeClasses.border}`}>
           <NavItem
             icon={<Settings size={18}/>}
             label="Settings"
@@ -663,95 +703,98 @@ const App = () => {
             active={false}
             badge=""
             small={false}
+            isDarkMode={isDarkMode}
           />
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col relative overflow-hidden text-slate-900">
-        <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shrink-0">
+      <main className={`flex-1 flex flex-col relative overflow-hidden ${themeClasses.text} transition-colors duration-300`}>
+        <header className={`${themeClasses.headerBg} border-b px-8 py-5 flex items-center justify-between shrink-0 backdrop-blur-sm bg-opacity-95 transition-colors duration-300`}>
           <div>
-            <h1 className="text-xl font-bold">
+            <h1 className={`font-heading text-2xl font-bold ${themeClasses.text} mb-1`}>
               {activeTab === 'Performance' ? 'Team Performance' : 'Pull Requests'}
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className={`text-sm ${themeClasses.textMuted} flex items-center gap-2`}>
+              <div className={`w-2 h-2 rounded-full ${activeTab === 'Performance' ? 'bg-purple-500' : 'bg-blue-500'} animate-pulse`}></div>
               {activeTab === 'Performance' ? 'Insights on code review metrics' : `Managing ${prs.filter(p => p.status !== 'archived').length} active requests`}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowNewPr(true)}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm active:scale-95"
+              className="group flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95"
             >
-              <Plus size={18} /> New PR
+              <Plus size={20} className="transition-transform group-hover:rotate-90 duration-200" />
+              <span>New PR</span>
             </button>
           </div>
         </header>
 
-        <div className="p-8 space-y-6 overflow-y-auto">
+        <div className="p-8 space-y-8 overflow-y-auto">
           {activeTab === 'Performance' ? (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
               {/* Performance Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                  <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
+                <div className={`${themeClasses.cardBg} p-6 rounded-2xl ${themeClasses.border} border shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-4 group cursor-pointer`}>
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-200">
                     <CheckCircle2 size={24} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Approved</p>
-                    <p className="text-2xl font-black">{stats.Approved}</p>
+                    <p className={`text-[10px] font-bold ${themeClasses.textMuted} uppercase tracking-widest`}>Total Approved</p>
+                    <p className={`text-2xl font-black ${themeClasses.text}`}>{stats.Approved}</p>
                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                  <div className="p-3 bg-amber-50 rounded-xl text-amber-600">
+                <div className={`${themeClasses.cardBg} p-6 rounded-2xl ${themeClasses.border} border shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-4 group cursor-pointer`}>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-xl text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform duration-200">
                     <Trophy size={24} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Avg. Quality</p>
-                    <p className="text-2xl font-black">
+                    <p className={`text-[10px] font-bold ${themeClasses.textMuted} uppercase tracking-widest`}>Avg. Quality</p>
+                    <p className={`text-2xl font-black ${themeClasses.text}`}>
                       {(prs.filter(p => p.score !== null).reduce((acc, p) => acc + (p.score || 0), 0) / prs.filter(p => p.score !== null).length || 0).toFixed(1)}
                     </p>
                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                  <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
+                <div className={`${themeClasses.cardBg} p-6 rounded-2xl ${themeClasses.border} border shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-4 group cursor-pointer`}>
+                  <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-200">
                     <Users size={24} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Members</p>
-                    <p className="text-2xl font-black">{performanceList.length}</p>
+                    <p className={`text-[10px] font-bold ${themeClasses.textMuted} uppercase tracking-widest`}>Active Members</p>
+                    <p className={`text-2xl font-black ${themeClasses.text}`}>{performanceList.length}</p>
                   </div>
                 </div>
               </div>
 
               {/* Ranking Table */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="font-bold">Member Performance Ranking</h3>
-                  <TrendingUp size={18} className="text-slate-400" />
+              <div className={`${themeClasses.cardBg} rounded-2xl ${themeClasses.border} border shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden`}>
+                <div className={`px-6 py-4 border-b ${themeClasses.border} flex items-center justify-between`}>
+                  <h3 className={`font-bold text-lg ${themeClasses.text}`}>Member Performance Ranking</h3>
+                  <TrendingUp size={18} className={`${themeClasses.textMuted}`} />
                 </div>
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-wider font-bold">
+                    <tr className={`${isDarkMode ? 'bg-slate-700/50' : 'bg-slate-50/50'} ${themeClasses.textMuted} text-[10px] uppercase tracking-wider font-bold`}>
                       <th className="px-8 py-4">Developer</th>
                       <th className="px-6 py-4">Approved PRs</th>
                       <th className="px-6 py-4">Avg. Score</th>
                       <th className="px-8 py-4 text-right">Performance Rank</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className={`${isDarkMode ? 'divide-slate-700' : 'divide-slate-100'} divide-y`}>
                     {performanceList.map((person, idx) => (
-                      <tr key={person.name} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={person.name} className={`${isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/50'} transition-colors duration-150`}>
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-3">
-                            <img src={person.avatar || '/default-avatar.png'} className="w-9 h-9 rounded-full border border-slate-200" />
-                            <span className="font-semibold">{person.name}</span>
+                            <img src={person.avatar || '/default-avatar.png'} className={`w-9 h-9 rounded-full border ${themeClasses.border}`} />
+                            <span className={`font-semibold ${themeClasses.text}`}>{person.name}</span>
                           </div>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
-                            <span className="text-lg font-black">{person.approvedCount}</span>
-                            <span className="text-xs text-slate-400 font-medium tracking-tight">PRs</span>
+                            <span className={`text-lg font-black ${themeClasses.text}`}>{person.approvedCount}</span>
+                            <span className={`text-xs ${themeClasses.textMuted} font-medium tracking-tight`}>PRs</span>
                           </div>
                         </td>
                         <td className="px-6 py-5">
@@ -780,49 +823,53 @@ const App = () => {
           ) : (
             <>
               {/* Stat Cards Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <StatCard 
-                  label="Waiting" 
-                  value={stats.Waiting} 
-                  icon={<Clock size={20} className="text-amber-500" />} 
-                  color="bg-amber-50" 
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-slide-in-bottom">
+                <StatCard
+                  label="Waiting"
+                  value={stats.Waiting}
+                  icon={<Clock size={22} className="text-amber-500" />}
+                  color={isDarkMode ? 'bg-amber-900/30' : 'bg-amber-50'}
                   isActive={statusFilter === 'Waiting'}
                   onClick={() => handleStatusCardClick('Waiting')}
+                  isDarkMode={isDarkMode}
                 />
-                <StatCard 
-                  label="Reviewing" 
-                  value={stats.Reviewing} 
-                  icon={<Search size={20} className="text-blue-500" />} 
-                  color="bg-blue-50" 
+                <StatCard
+                  label="Reviewing"
+                  value={stats.Reviewing}
+                  icon={<Search size={22} className="text-blue-500" />}
+                  color={isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'}
                   isActive={statusFilter === 'Reviewing'}
                   onClick={() => handleStatusCardClick('Reviewing')}
+                  isDarkMode={isDarkMode}
                 />
-                <StatCard 
-                  label="Action" 
-                  value={stats.Action} 
-                  icon={<AlertCircle size={20} className="text-rose-500" />} 
-                  color="bg-rose-50" 
+                <StatCard
+                  label="Action"
+                  value={stats.Action}
+                  icon={<AlertCircle size={22} className="text-rose-500" />}
+                  color={isDarkMode ? 'bg-rose-900/30' : 'bg-rose-50'}
                   isActive={statusFilter === 'Action'}
                   onClick={() => handleStatusCardClick('Action')}
+                  isDarkMode={isDarkMode}
                 />
-                <StatCard 
-                  label="Approved" 
-                  value={stats.Approved} 
-                  icon={<CheckCircle2 size={20} className="text-emerald-500" />} 
-                  color="bg-emerald-50" 
+                <StatCard
+                  label="Approved"
+                  value={stats.Approved}
+                  icon={<CheckCircle2 size={22} className="text-emerald-500" />}
+                  color={isDarkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}
                   isActive={statusFilter === 'Approved'}
                   onClick={() => handleStatusCardClick('Approved')}
+                  isDarkMode={isDarkMode}
                 />
               </div>
 
               {/* Filter Display */}
-              <div className="flex items-center justify-between gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+              <div className={`flex items-center justify-between gap-4 ${themeClasses.cardBg} p-3 rounded-xl ${themeClasses.border} border shadow-sm backdrop-blur-sm transition-colors duration-300`}>
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="text" 
+                  <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${themeClasses.textMuted}`} size={18} />
+                  <input
+                    type="text"
                     placeholder="Search by title, ID or repo..."
-                    className="w-full pl-10 pr-4 py-2 bg-transparent border-none focus:ring-0 text-sm"
+                    className={`w-full pl-10 pr-4 py-3 bg-transparent border-none focus:ring-0 text-sm ${themeClasses.text} placeholder-slate-400 focus:outline-none`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -845,30 +892,56 @@ const App = () => {
               </div>
 
               {/* Table */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className={`${themeClasses.cardBg} rounded-xl ${themeClasses.border} border shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden`}>
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider font-bold">
+                    <tr className={`${isDarkMode ? 'bg-slate-700/30' : 'bg-slate-50/50'} ${themeClasses.textMuted} text-[11px] uppercase tracking-wider font-bold`}>
                       <th className="px-6 py-4">Pull Request Info</th>
                       <th className="px-6 py-4">Status</th>
                       <th className="px-6 py-4">Author</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredPrs.length > 0 ? (
-                      filteredPrs.map((pr) => (
-                        <tr key={pr.id} className="group hover:bg-slate-50/80 transition-colors cursor-pointer" onClick={() => setSelectedPrId(pr.id)}>
+                  <tbody className={`${isDarkMode ? 'divide-slate-700' : 'divide-slate-100'} divide-y`}>
+                    {isLoadingPRs ? (
+                      // Loading skeleton rows
+                      Array.from({ length: 3 }).map((_, index) => (
+                        <tr key={`skeleton-${index}`} className="animate-pulse">
                           <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-mono font-medium text-slate-400">{pr.id}</span>
-                                <span className="text-sm font-semibold group-hover:text-indigo-600 transition-colors">{pr.title}</span>
+                                <div className={`w-12 h-4 rounded ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'} loading-skeleton`}></div>
+                                <div className={`h-4 rounded flex-1 max-w-xs ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'} loading-skeleton`}></div>
                               </div>
-                              <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                                <span className="font-medium text-indigo-600/70">{pr.project_name}</span>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-20 h-3 rounded ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'} loading-skeleton`}></div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className={`w-16 h-6 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'} loading-skeleton`}></div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className={`w-24 h-4 rounded ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'} loading-skeleton`}></div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className={`w-6 h-4 rounded ml-auto ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'} loading-skeleton`}></div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : filteredPrs.length > 0 ? (
+                      filteredPrs.map((pr) => (
+                        <tr key={pr.id} className={`group ${isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50/80'} transition-colors duration-150 cursor-pointer`} onClick={() => setSelectedPrId(pr.id)}>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-mono font-medium px-2 py-0.5 rounded ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>#{pr.id}</span>
+                                <span className={`text-sm font-semibold ${themeClasses.text} group-hover:text-indigo-600 transition-colors truncate`}>{pr.title}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[11px]">
+                                <span className={`font-medium px-2 py-0.5 rounded ${isDarkMode ? 'bg-indigo-900/30 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>{pr.project_name}</span>
                                 {pr.score && (
-                                  <span className="flex items-center gap-1 text-emerald-600 ml-2 font-black bg-emerald-50 px-2 rounded shadow-sm">
+                                  <span className={`flex items-center gap-1 ml-2 font-black px-2 py-0.5 rounded shadow-sm ${isDarkMode ? 'bg-emerald-900/30 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
                                     <Trophy size={10} /> {pr.score}/10
                                   </span>
                                 )}
@@ -880,13 +953,22 @@ const App = () => {
                               {pr.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-xs font-medium">{pr.author_name}</td>
-                          <td className="px-6 py-4 text-right"><MoreHorizontal size={18} className="text-slate-300 ml-auto" /></td>
+                          <td className={`px-6 py-4 text-xs font-medium ${themeClasses.textLight}`}>{pr.author_name}</td>
+                          <td className="px-6 py-4 text-right">
+                            <MoreHorizontal size={18} className={`${themeClasses.textMuted} ml-auto group-hover:text-indigo-500 transition-colors`} />
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">No matching PRs found.</td>
+                        <td colSpan={4} className={`px-6 py-12 text-center ${themeClasses.textMuted} italic`}>
+                          <div className="flex flex-col items-center gap-3">
+                            <div className={`w-12 h-12 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'} flex items-center justify-center`}>
+                              <Search size={20} className={themeClasses.textMuted} />
+                            </div>
+                            <span>No matching PRs found.</span>
+                          </div>
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -899,8 +981,8 @@ const App = () => {
         {/* Drawer */}
         {selectedPr && (
           <>
-            <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[2px] z-10" onClick={() => setSelectedPrId(null)} />
-            <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl z-20 flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-300 text-slate-900">
+            <div className={`absolute inset-0 ${isDarkMode ? 'bg-slate-900/60' : 'bg-slate-900/20'} backdrop-blur-[2px] z-10 transition-colors duration-300`} onClick={() => setSelectedPrId(null)} />
+            <div className={`absolute right-0 top-0 h-full w-full max-w-xl ${themeClasses.cardBg} shadow-2xl z-20 flex flex-col border-l ${themeClasses.border} animate-in slide-in-from-right duration-300 ${themeClasses.text}`}>
               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded text-xs font-mono font-bold">{selectedPr.id}</span>
@@ -1113,7 +1195,7 @@ const App = () => {
             <form onSubmit={submitNewPr} className="space-y-6 text-slate-900">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest text-indigo-600">
-                  <Github size={14} className="inline mr-1" />
+                  <GitBranch size={14} className="inline mr-1" />
                   GitHub PR URL
                 </label>
                 <input
@@ -1233,17 +1315,35 @@ interface NavItemProps {
   badge: string;
   onClick: () => void;
   small: boolean;
+  isDarkMode?: boolean;
 }
 
-const NavItem = ({ icon, label, active, badge, onClick, small }: NavItemProps) => (
-  <button onClick={onClick} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all group/item ${active ? 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-50 ring-1 ring-indigo-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'} ${small ? 'py-1.5' : ''}`}>
-    <div className="flex items-center gap-3">
-      {icon && <span className={active ? 'text-indigo-600' : 'text-slate-400 group-hover/item:text-slate-600'}>{icon}</span>}
-      <span className={`${small ? 'text-[13px]' : 'text-[14px] font-medium'} truncate max-w-[140px]`}>{label}</span>
-    </div>
-    {badge && badge !== "0" && <span className="bg-orange-100 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{badge}</span>}
-  </button>
-);
+const NavItem = ({ icon, label, active, badge, onClick, small, isDarkMode = false }: NavItemProps) => {
+  const themeClasses = {
+    active: isDarkMode
+      ? 'bg-indigo-900/50 text-indigo-300 shadow-sm ring-1 ring-indigo-700/50'
+      : 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-50 ring-1 ring-indigo-200',
+    inactive: isDarkMode
+      ? 'text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+    icon: active
+      ? (isDarkMode ? 'text-indigo-400' : 'text-indigo-600')
+      : (isDarkMode ? 'text-slate-400 group-hover/item:text-slate-300' : 'text-slate-400 group-hover/item:text-slate-600')
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group/item ${active ? themeClasses.active : themeClasses.inactive} ${small ? 'py-1.5' : ''}`}
+    >
+      <div className="flex items-center gap-3">
+        {icon && <span className={themeClasses.icon}>{icon}</span>}
+        <span className={`${small ? 'text-[13px]' : 'text-[14px] font-medium'} truncate max-w-[140px]`}>{label}</span>
+      </div>
+      {badge && badge !== "0" && <span className={`${isDarkMode ? 'bg-orange-900/50 text-orange-300' : 'bg-orange-100 text-orange-700'} text-[10px] font-bold px-1.5 py-0.5 rounded-full`}>{badge}</span>}
+    </button>
+  );
+};
 
 interface StatCardProps {
   label: string;
@@ -1252,20 +1352,23 @@ interface StatCardProps {
   color: string;
   isActive: boolean;
   onClick: () => void;
+  isDarkMode?: boolean;
 }
 
-const StatCard = ({ label, value, icon, color, isActive, onClick }: StatCardProps) => (
+const StatCard = ({ label, value, icon, color, isActive, onClick, isDarkMode = false }: StatCardProps) => (
   <button
     onClick={onClick}
-    className={`bg-white p-5 rounded-xl border-2 transition-all hover:-translate-y-1 flex items-start justify-between w-full text-left ${
-      isActive ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-md' : 'border-transparent shadow-sm hover:shadow-md'
+    className={`group ${isDarkMode ? 'bg-slate-800' : 'bg-white'} p-6 rounded-2xl border-2 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl flex items-start justify-between w-full text-left cursor-pointer focus-ring ${
+      isActive
+        ? `border-indigo-600 ring-4 ${isDarkMode ? 'ring-indigo-900/30' : 'ring-indigo-50'} shadow-lg`
+        : `${isDarkMode ? 'border-slate-700 hover:border-slate-600' : 'border-transparent hover:border-slate-200'} shadow-sm hover:shadow-md`
     }`}
   >
-    <div>
-      <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-2xl font-black tracking-tight">{value}</p>
+    <div className="space-y-2">
+      <p className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-400'} uppercase tracking-widest font-heading`}>{label}</p>
+      <p className={`text-3xl font-black tracking-tight font-heading ${isDarkMode ? 'text-slate-100' : 'text-slate-900'} group-hover:scale-105 transition-transform duration-200`}>{value}</p>
     </div>
-    <div className={`p-2.5 rounded-xl ${color}`}>
+    <div className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform duration-200`}>
       {icon}
     </div>
   </button>
