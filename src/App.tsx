@@ -1,32 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { 
-  Search, 
-  Filter, 
-  GitPullRequest, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  MoreHorizontal, 
-  ChevronRight, 
-  X, 
-  ExternalLink, 
-  MessageSquare, 
-  GitBranch, 
-  Github, 
-  LayoutDashboard, 
-  Inbox, 
-  Settings, 
-  Plus, 
-  User, 
-  Key, 
-  Save, 
-  Trash2, 
-  FolderPlus, 
-  Star, 
-  Check, 
-  Trophy, 
-  Link,
+import {
+  Search,
+  GitPullRequest,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  MoreHorizontal,
+  ChevronRight,
+  X,
+  Github,
+  LayoutDashboard,
+  Inbox,
+  Settings,
+  Plus,
+  Key,
+  Save,
+  Trash2,
+  FolderPlus,
+  Check,
+  Trophy,
   Eye,
   EyeOff,
   RefreshCw,
@@ -71,11 +64,11 @@ interface PullRequest {
 
 const App = () => {
   const [prs, setPrs] = useState<PullRequest[]>([]);  // Now uses real database data only
-  const [selectedPrId, setSelectedPrId] = useState(null);
+  const [selectedPrId, setSelectedPrId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('Overview');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState(null); 
-  const [repoFilter, setRepoFilter] = useState(null); 
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [repoFilter, setRepoFilter] = useState<string | null>(null); 
   
   // 視窗與測試狀態
   const [showSettings, setShowSettings] = useState(false);
@@ -86,7 +79,7 @@ const App = () => {
     try {
       const storedToken = await invoke('get_github_token');
       if (storedToken) {
-        setApiKey(storedToken);
+        setApiKey(storedToken as string);
       }
     } catch (error) {
       console.error('Failed to load GitHub token:', error);
@@ -97,7 +90,7 @@ const App = () => {
   const [showScoring, setShowScoring] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isTesting, setIsTesting] = useState(false); // 是否正在測試連線
-  const [testStatus, setTestStatus] = useState(null); // 'success' | 'error' | null
+  const [testStatus, setTestStatus] = useState<'success' | 'error' | null>(null);
   
   // 數據狀態
   const [apiKey, setApiKey] = useState('');
@@ -118,7 +111,6 @@ const App = () => {
   const [newPrData, setNewPrData] = useState({ url: '', project: '' });
 
   // 評分狀態
-  const [hoverScore, setHoverScore] = useState(0);
   const [selectedScore, setSelectedScore] = useState(0);
 
   const selectedPr = prs.find(p => p.id === selectedPrId);
@@ -132,14 +124,7 @@ const App = () => {
     });
   };
 
-  // Success notification utility
-  const showSuccess = (title: string, message: string) => {
-    setErrorModal({
-      show: true,
-      title,
-      message
-    });
-  };
+  // Success notification utility (unused but keeping for potential future use)
 
   // Copy GitHub PR URL to clipboard
   const handleCopyGitHubUrl = async (pr: PullRequest) => {
@@ -206,20 +191,7 @@ const App = () => {
     }
   };
 
-  const updateExistingProject = async (id: number, name: string, description?: string) => {
-    try {
-      const updatedProject = await invoke('update_project', {
-        id,
-        name,
-        description: description || null
-      }) as Project;
-      setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
-      return updatedProject;
-    } catch (error) {
-      console.error('Failed to update project:', error);
-      throw error;
-    }
-  };
+  // updateExistingProject function (unused but keeping for potential future use)
 
   const deleteExistingProject = async (id: number) => {
     try {
@@ -313,7 +285,14 @@ const App = () => {
 
   // 計算 Performance 數據
   const calculatePerformance = () => {
-    const perfMap = {};
+    const perfMap: Record<string, {
+      name: string;
+      avatar: string | null;
+      approvedCount: number;
+      totalScore: number;
+      scoredCount: number;
+    }> = {};
+
     prs.forEach(pr => {
       const name = pr.author_name || 'Unknown';
       if (!perfMap[name]) {
@@ -336,20 +315,20 @@ const App = () => {
 
     return Object.values(perfMap).map(person => ({
       ...person,
-      avgScore: person.scoredCount > 0 ? (person.totalScore / person.scoredCount).toFixed(1) : "N/A"
+      avgScore: person.scoredCount > 0 ? parseFloat((person.totalScore / person.scoredCount).toFixed(1)) : "N/A" as const
     })).sort((a, b) => {
       // Handle N/A values - put them at the end (lowest ranking)
       if (a.avgScore === "N/A" && b.avgScore === "N/A") return 0;
       if (a.avgScore === "N/A") return 1; // a goes to end
       if (b.avgScore === "N/A") return -1; // b goes to end
       // Normal numeric sorting for valid scores (highest first)
-      return b.avgScore - a.avgScore;
+      return (b.avgScore as number) - (a.avgScore as number);
     });
   };
 
   const performanceList = calculatePerformance();
 
-  const getStatusStyle = (status) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'Waiting': return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'Reviewing': return 'bg-blue-50 text-blue-700 border-blue-200';
@@ -359,7 +338,7 @@ const App = () => {
     }
   };
 
-  const handleStatusCardClick = (status) => {
+  const handleStatusCardClick = (status: string) => {
     if (statusFilter === status) {
       setStatusFilter(null);
     } else {
@@ -368,7 +347,7 @@ const App = () => {
     }
   };
 
-  const handleProjectClick = (project) => {
+  const handleProjectClick = (project: string) => {
     if (repoFilter === project) {
       setRepoFilter(null);
     } else {
@@ -410,7 +389,7 @@ const App = () => {
     }
   };
 
-  const updatePrStatus = async (id, newStatus) => {
+  const updatePrStatus = async (id: number, newStatus: string) => {
     try {
       // Update backend first
       await invoke('update_pr_status', { prId: id, status: newStatus });
@@ -423,7 +402,7 @@ const App = () => {
     }
   };
 
-  const updatePrProject = async (id, newProjectName) => {
+  const updatePrProject = async (id: number, newProjectName: string) => {
     try {
       // Find the project ID by name
       const project = projects.find(p => p.name === newProjectName);
@@ -452,7 +431,7 @@ const App = () => {
     setTimeout(() => setIsSyncing(false), 1500);
   };
 
-  const copyBranchDetails = async (pr) => {
+  const copyBranchDetails = async (pr: PullRequest) => {
     try {
       const copyText = `cr into main from ${pr.branch}`;
       await navigator.clipboard.writeText(copyText);
@@ -463,7 +442,7 @@ const App = () => {
     }
   };
 
-  const archivePr = async (id) => {
+  const archivePr = async (id: number) => {
     try {
       // Update backend to set status to "archived"
       await invoke('update_pr_status', { prId: id, status: 'archived' });
@@ -484,17 +463,9 @@ const App = () => {
     return githubPrPattern.test(url);
   };
 
-  const extractTitleFromPRUrl = (url: string): string => {
-    // Extract basic info from URL for now - we'll enhance this with GitHub API later
-    const match = url.match(/github\.com\/([\w-]+)\/([\w.-]+)\/pull\/(\d+)/);
-    if (match) {
-      const [, owner, repo, prNumber] = match;
-      return `PR #${prNumber} from ${owner}/${repo}`;
-    }
-    return 'GitHub PR';
-  };
+  // extractTitleFromPRUrl function (unused but keeping for potential future use)
 
-  const submitNewPr = async (e) => {
+  const submitNewPr = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidGitHubPRUrl(newPrData.url)) {
       showError('Invalid GitHub URL', 'Please enter a valid GitHub PR URL (e.g., https://github.com/owner/repo/pull/123)');
@@ -506,7 +477,7 @@ const App = () => {
     if (!selectedProject && projects.length > 0) {
       selectedProject = projects[0];
       // Update the form to reflect the correct project
-      setNewPrData(prev => ({ ...prev, project: selectedProject.name }));
+      setNewPrData(prev => ({ ...prev, project: selectedProject!.name }));
     }
 
     if (!selectedProject) {
@@ -523,14 +494,14 @@ const App = () => {
 
       // First test if Tauri invoke is working at all
       try {
-        const testResult = await invoke('test_invoke', { message: 'Hello from frontend' }) as string;
+        await invoke('test_invoke', { message: 'Hello from frontend' }) as string;
       } catch (testError) {
         console.error('Tauri invoke test failed:', testError);
         showError('Tauri Invoke Error', 'Basic Tauri communication is failing: ' + String(testError));
         return;
       }
 
-      const newPR = await invoke('add_pr_from_github_url', {
+      await invoke('add_pr_from_github_url', {
         prUrl: newPrData.url,
         projectId: selectedProject.id,
         token: apiKey
@@ -567,12 +538,12 @@ const App = () => {
     }
   };
 
-  const handleAddProject = async (e) => {
+  const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (newProjectName.trim()) {
       try {
-        const createdProject = await addNewProject(newProjectName.trim());
+        await addNewProject(newProjectName.trim());
 
         setNewProjectName('');
         setShowAddProject(false);
@@ -583,7 +554,6 @@ const App = () => {
         console.error('❌ Failed to add project in form handler:', error);
         showError('Project Creation Failed', `Failed to create project: ${error}`);
       }
-    } else {
     }
   };
 
@@ -599,24 +569,29 @@ const App = () => {
         </div>
         
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-          <NavItem 
-            icon={<LayoutDashboard size={18}/>} 
-            label="Overview" 
-            active={activeTab === 'Overview' && !statusFilter && !repoFilter} 
-            onClick={() => { setActiveTab('Overview'); setStatusFilter(null); setRepoFilter(null); }} 
+          <NavItem
+            icon={<LayoutDashboard size={18}/>}
+            label="Overview"
+            active={activeTab === 'Overview' && !statusFilter && !repoFilter}
+            onClick={() => { setActiveTab('Overview'); setStatusFilter(null); setRepoFilter(null); }}
+            badge=""
+            small={false}
           />
-          <NavItem 
-            icon={<Inbox size={18}/>} 
-            label="Waiting for me" 
-            badge={stats.Waiting.toString()} 
+          <NavItem
+            icon={<Inbox size={18}/>}
+            label="Waiting for me"
+            badge={stats.Waiting.toString()}
             active={statusFilter === 'Waiting'}
-            onClick={() => { setActiveTab('Overview'); setStatusFilter('Waiting'); setRepoFilter(null); }} 
+            onClick={() => { setActiveTab('Overview'); setStatusFilter('Waiting'); setRepoFilter(null); }}
+            small={false}
           />
-          <NavItem 
-            icon={<BarChart3 size={18}/>} 
-            label="Performance" 
+          <NavItem
+            icon={<BarChart3 size={18}/>}
+            label="Performance"
             active={activeTab === 'Performance'}
-            onClick={() => { setActiveTab('Performance'); setStatusFilter(null); setRepoFilter(null); }} 
+            onClick={() => { setActiveTab('Performance'); setStatusFilter(null); setRepoFilter(null); }}
+            badge=""
+            small={false}
           />
           
           <div className="py-4 px-2">
@@ -641,7 +616,7 @@ const App = () => {
                           label={project.name}
                           active={repoFilter === project.name}
                           onClick={() => handleProjectClick(project.name)}
-                          small
+                          small={true}
                           icon={<ChevronRight size={14}/>}
                           badge=""
                         />
@@ -681,7 +656,14 @@ const App = () => {
         </nav>
 
         <div className="p-4 border-t border-slate-100">
-          <NavItem icon={<Settings size={18}/>} label="Settings" onClick={handleOpenSettings} />
+          <NavItem
+            icon={<Settings size={18}/>}
+            label="Settings"
+            onClick={handleOpenSettings}
+            active={false}
+            badge=""
+            small={false}
+          />
         </div>
       </aside>
 
@@ -727,7 +709,7 @@ const App = () => {
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Avg. Quality</p>
                     <p className="text-2xl font-black">
-                      {(prs.filter(p => p.score).reduce((acc, p) => acc + p.score, 0) / prs.filter(p => p.score).length || 0).toFixed(1)}
+                      {(prs.filter(p => p.score !== null).reduce((acc, p) => acc + (p.score || 0), 0) / prs.filter(p => p.score !== null).length || 0).toFixed(1)}
                     </p>
                   </div>
                 </div>
@@ -762,7 +744,7 @@ const App = () => {
                       <tr key={person.name} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-3">
-                            <img src={person.avatar} className="w-9 h-9 rounded-full border border-slate-200" />
+                            <img src={person.avatar || '/default-avatar.png'} className="w-9 h-9 rounded-full border border-slate-200" />
                             <span className="font-semibold">{person.name}</span>
                           </div>
                         </td>
@@ -774,13 +756,13 @@ const App = () => {
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
-                            <span className={`text-sm font-black px-2 py-0.5 rounded ${person.avgScore >= 9 ? 'text-emerald-600 bg-emerald-50' : 'text-indigo-600 bg-indigo-50'}`}>
+                            <span className={`text-sm font-black px-2 py-0.5 rounded ${(typeof person.avgScore === 'number' && person.avgScore >= 9) ? 'text-emerald-600 bg-emerald-50' : 'text-indigo-600 bg-indigo-50'}`}>
                               {person.avgScore}
                             </span>
                             <div className="flex-1 max-w-[100px] h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full transition-all duration-1000 ${person.avgScore >= 9 ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
-                                style={{ width: `${(person.avgScore / 10) * 100}%` }}
+                              <div
+                                className={`h-full transition-all duration-1000 ${(typeof person.avgScore === 'number' && person.avgScore >= 9) ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                                style={{ width: `${typeof person.avgScore === 'number' ? (person.avgScore / 10) * 100 : 0}%` }}
                               />
                             </div>
                           </div>
@@ -904,7 +886,7 @@ const App = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="4" className="px-6 py-12 text-center text-slate-400 italic">No matching PRs found.</td>
+                        <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">No matching PRs found.</td>
                       </tr>
                     )}
                   </tbody>
@@ -941,7 +923,7 @@ const App = () => {
                     <p className="text-slate-500 mb-8 max-w-sm px-4">Rate the quality of this Pull Request on a scale of 1 to 10.</p>
                     <div className="grid grid-cols-5 gap-3 mb-10">
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                        <button key={num} onClick={() => setSelectedScore(num)} className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black transition-all transform active:scale-90 border-2 ${(hoverScore || selectedScore) >= num ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{num}</button>
+                        <button key={num} onClick={() => setSelectedScore(num)} className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black transition-all transform active:scale-90 border-2 ${selectedScore >= num ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{num}</button>
                       ))}
                     </div>
                     <div className="flex gap-3 w-full max-w-xs">
@@ -1244,7 +1226,16 @@ const App = () => {
 };
 
 // UI Components
-const NavItem = ({ icon, label, active, badge, onClick, small }) => (
+interface NavItemProps {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  badge: string;
+  onClick: () => void;
+  small: boolean;
+}
+
+const NavItem = ({ icon, label, active, badge, onClick, small }: NavItemProps) => (
   <button onClick={onClick} className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all group/item ${active ? 'bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-50 ring-1 ring-indigo-200' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'} ${small ? 'py-1.5' : ''}`}>
     <div className="flex items-center gap-3">
       {icon && <span className={active ? 'text-indigo-600' : 'text-slate-400 group-hover/item:text-slate-600'}>{icon}</span>}
@@ -1254,8 +1245,17 @@ const NavItem = ({ icon, label, active, badge, onClick, small }) => (
   </button>
 );
 
-const StatCard = ({ label, value, icon, color, isActive, onClick }) => (
-  <button 
+interface StatCardProps {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+const StatCard = ({ label, value, icon, color, isActive, onClick }: StatCardProps) => (
+  <button
     onClick={onClick}
     className={`bg-white p-5 rounded-xl border-2 transition-all hover:-translate-y-1 flex items-start justify-between w-full text-left ${
       isActive ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-md' : 'border-transparent shadow-sm hover:shadow-md'
@@ -1271,7 +1271,14 @@ const StatCard = ({ label, value, icon, color, isActive, onClick }) => (
   </button>
 );
 
-const Modal = ({ onClose, title, icon, children }) => (
+interface ModalProps {
+  onClose: () => void;
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}
+
+const Modal = ({ onClose, title, icon, children }: ModalProps) => (
   <div className="fixed inset-0 flex items-center justify-center z-[100] px-4 text-slate-900">
     <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in" onClick={onClose} />
     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
